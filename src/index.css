@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 自定义样式 */
+@layer base {
+  body {
+    @apply bg-gray-900 text-gray-100 font-sans;
+  }
+}
+
+@layer components {
+  .keyword-button {
+    @apply px-3 py-2 m-1 text-sm rounded-lg border transition-all duration-200 cursor-pointer;
+  }
+  
+  .keyword-button-unselected {
+    @apply bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500;
+  }
+  
+  .keyword-button-selected {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 border-purple-400 text-white shadow-lg;
+  }
+  
+  .category-section {
+    @apply mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700;
+  }
+  
+  .category-title {
+    @apply text-lg font-semibold mb-3 text-cyan-400 cursor-pointer flex items-center;
+  }
+  
+  .filter-card {
+    @apply p-4 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg border border-gray-600 cursor-pointer transition-all duration-300 hover:border-purple-500 hover:shadow-lg;
+  }
+  
+  .filter-card-selected {
+    @apply border-purple-400 bg-gradient-to-br from-purple-900 to-pink-900 shadow-purple-500/20;
+  }
+  
+  .mode-button {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 border;
+  }
+  
+  .mode-button-active {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 shadow-lg;
+  }
+  
+  .mode-button-inactive {
+    @apply bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:border-gray-500;
+  }
+  
+  .prompt-output {
+    @apply p-4 bg-gray-800 rounded-lg border border-gray-600 min-h-[100px] font-mono text-sm;
+  }
+}
