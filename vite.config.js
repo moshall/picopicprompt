@@ -4,6 +4,6 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/picopicprompt/', // 部署到 GitHub Pages 的基础路径
+  base: '/',
   plugins: [react()], // We removed the tailwindcss() plugin from here
 }) 
