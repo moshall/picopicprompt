@@ -45,6 +45,9 @@ const ManualModeView = () => {
     if (config.artStyles) {
       groups['六. 艺术风格'].push({ title: '🎨 艺术风格', data: config.artStyles });
     }
+    if (config.styleCombinations) {
+      groups['六. 艺术风格'].push({ title: '🔮 风格组合滤镜', data: config.styleCombinations });
+    }
     
     return Object.entries(groups).filter(([_, categories]) => categories.length > 0);
   };

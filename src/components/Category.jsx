@@ -30,16 +30,24 @@ const Category = ({ categoryTitle, categoryData, type = 'positive' }) => {
     if (typeof data === 'object' && data !== null) {
       return (
         <div className={`space-y-4 ${level > 0 ? 'ml-4 mt-3' : 'mt-3'}`}>
-          {Object.entries(data).map(([key, value]) => (
-            <div key={key} className="space-y-2">
-              <h5 className={`font-medium ${
-                level === 0 ? 'text-purple-400' : 'text-gray-400'
-              } text-sm`}>
-                {key}
-              </h5>
-              {renderNestedData(value, level + 1)}
-            </div>
-          ))}
+          {Object.entries(data).map(([key, value]) => {
+            // 新增逻辑：如果值是数组，则将其视为一个组合关键词单元
+            if (Array.isArray(value)) {
+              return <Keyword key={key} keyword={{ name: key, combo: value }} type={type} />;
+            }
+            
+            // 原始逻辑保持不变
+            return (
+              <div key={key} className="space-y-2">
+                <h5 className={`font-medium ${
+                  level === 0 ? 'text-purple-400' : 'text-gray-400'
+                } text-sm`}>
+                  {key}
+                </h5>
+                {renderNestedData(value, level + 1)}
+              </div>
+            );
+          })}
         </div>
       );
     }

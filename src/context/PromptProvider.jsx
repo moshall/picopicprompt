@@ -121,6 +121,29 @@ const generateStructuredPromptString = (keywordsSet, isAnimeMode) => {
 // Reducer函数
 const promptReducer = (state, action) => {
   switch (action.type) {
+    case 'TOGGLE_KEYWORD_COMBINATION': {
+      const newSelected = new Set(state.selectedKeywords);
+      const comboKeywords = action.payload;
+      
+      // 以组合中的第一个关键词作为判断是否已选中的依据
+      const isAlreadySelected = newSelected.has(comboKeywords[0]);
+      
+      if (isAlreadySelected) {
+        // 如果已选中，则移除所有组合内的关键词
+        comboKeywords.forEach(kw => newSelected.delete(kw));
+      } else {
+        // 如果未选中，则添加所有组合内的关键词
+        comboKeywords.forEach(kw => newSelected.add(kw));
+      }
+
+      const newPrompt = generateStructuredPromptString(newSelected, state.isAnimeMode);
+      return {
+        ...state,
+        selectedKeywords: newSelected,
+        finalPrompt: newPrompt,
+      };
+    }
+
     case 'ADD_KEYWORD': {
       const newSelected = new Set(state.selectedKeywords);
       newSelected.add(action.payload);
