@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { config } from '../data/config.js';
 
-// --- 新增：关键词到主分类的映射 ---
-const keywordToGroupMap = {};
-const groupOrder = ['一. 情感意图', '二. 内容主体', '三. 场景环境', '四. 光效色调', '五. 镜头语言', '六. 艺术风格'];
+// --- 提前定义所有需要的函数和变量 ---
 
-// 辅助函数：递归地将关键词添加到映射
+const groupOrder = ['一. 情感意图', '二. 内容主体', '三. 场景环境', '四. 光效色调', '五. 镜头语言', '六. 艺术风格'];
+const keywordToGroupMap = {};
+
 const addToMap = (data, groupName) => {
   if (Array.isArray(data)) {
     data.forEach(keyword => {
@@ -16,7 +16,6 @@ const addToMap = (data, groupName) => {
   }
 };
 
-// 填充映射
 if (config.emotionKeywords) addToMap(config.emotionKeywords, '一. 情感意图');
 if (config.characterDimensions) addToMap(config.characterDimensions, '二. 内容主体');
 if (config.sceneTypes) addToMap(config.sceneTypes, '三. 场景环境');
@@ -26,89 +25,23 @@ if (config.colorPalettes) addToMap(config.colorPalettes, '四. 光效色调');
 if (config.lighting) addToMap(config.lighting, '四. 光效色调');
 if (config.cinematicLanguage) addToMap(config.cinematicLanguage, '五. 镜头语言');
 if (config.artStyles) addToMap(config.artStyles, '六. 艺术风格');
-// 画质词也归类，虽然不在六大分类标题中，但可用于排序
-['杰作', '最佳画质', '高细节', '超高分辨率', '8K', '电影级', '大师作品'].forEach(k => keywordToGroupMap[k] = '0. 画质');
-// --- 映射结束 ---
 
-// 创建上下文
-const PromptContext = createContext();
-
-// 初始状态
-const initialState = {
-  selectedKeywords: new Set(),
-  negativeKeywords: new Set(['blur', 'bad quality', 'worst quality', 'lowres', 'text', 'watermark']),
-  currentMode: 'manual',
-  finalPrompt: '二次元',
-  finalNegativePrompt: 'blur, bad quality',
-  selectedFilter: null,
-  isAnimeMode: true,
-};
-
-// 关键词排序优先级
-const keywordPriority = {
-  '杰作': 0, '大师作品': 0, '最佳画质': 0, '高细节': 0, '超高分辨率': 0, '8K': 0, '电影级': 0,
-  // 主体相关
-  '女孩': 1, '男孩': 1, '少女': 1, '少年': 1, '人类': 1, '精灵': 1, '恶魔': 1, '天使': 1,
-  // 姿势动作
-  '站立': 2, '坐着': 2, '躺着': 2, '奔跑': 2, '跳跃': 2,
-  // 细节
-  '长发': 3, '短发': 3, '马尾': 3, '衬衫': 3, 'T恤': 3,
-  // 风格
-  '动漫风格': 4, '写实': 4, '插画': 4, '概念艺术': 4,
-  // 场景
-  '魔法森林': 5, '废土': 5, '赛博朋克城市': 5,
-  // 灯光
-  '柔光': 6, '硬光': 6, '体积光': 6, '霓虹闪烁': 6,
-  // 镜头
-  '特写': 7, '远景': 7, '广角镜头': 7,
-};
-
-// 获取关键词优先级
-const getKeywordPriority = (keyword) => {
-  // 使用新的分类映射来决定大致顺序
-  const group = keywordToGroupMap[keyword];
-  const groupIndex = group ? groupOrder.indexOf(group) : -1;
-  return groupIndex !== -1 ? groupIndex : groupOrder.length;
-};
-
-// 生成结构化的Prompt字符串
-const generateStructuredPromptString = (keywordsSet, isAnimeMode) => {
-  if (keywordsSet.size === 0 && !isAnimeMode) return '';
+const generateStructuredPromptString = (keywordsSet) => {
+  if (!keywordsSet || keywordsSet.size === 0) return '';
   
   const groupedKeywords = groupOrder.reduce((acc, group) => {
     acc[group] = [];
     return acc;
   }, {});
 
-  let qualityKeywords = [];
-
-  // 1. 分组关键词
   keywordsSet.forEach(keyword => {
     const group = keywordToGroupMap[keyword];
-    if (group === '0. 画质') {
-      qualityKeywords.push(keyword);
-    } else if (groupedKeywords[group]) {
+    if (groupedKeywords[group]) {
       groupedKeywords[group].push(keyword);
     }
   });
 
-  // 根据isAnimeMode状态，条件性地添加"二次元"
-  if (isAnimeMode) {
-    // 确保不重复添加
-    if (!groupedKeywords['六. 艺术风格'].includes('二次元')) {
-      groupedKeywords['六. 艺术风格'].push('二次元');
-    }
-  }
-
-  // 2. 构建字符串
   let promptParts = [];
-
-  // 首先添加高优先级的画质词
-  if (qualityKeywords.length > 0) {
-    promptParts.push(qualityKeywords.join(', '));
-  }
-
-  // 然后按顺序添加六大分类
   groupOrder.forEach(group => {
     if (groupedKeywords[group].length > 0) {
       promptParts.push(`${group.split('. ')[1]}：${groupedKeywords[group].join(', ')}`);
@@ -118,9 +51,62 @@ const generateStructuredPromptString = (keywordsSet, isAnimeMode) => {
   return promptParts.join('; ');
 };
 
-// Reducer函数
+
+// --- 定义初始状态 ---
+
+const PromptContext = createContext();
+
+const initialIsAnimeMode = true;
+const initialSelectedKeywords = new Set();
+if (initialIsAnimeMode) {
+  initialSelectedKeywords.add('二次元');
+}
+
+const initialState = {
+  selectedKeywords: initialSelectedKeywords,
+  negativeKeywords: new Set(['blur', 'bad quality', 'worst quality', 'lowres', 'text', 'watermark']),
+  currentMode: 'manual',
+  finalPrompt: generateStructuredPromptString(initialSelectedKeywords),
+  finalNegativePrompt: 'blur, bad quality',
+  selectedFilter: null,
+  isAnimeMode: initialIsAnimeMode,
+};
+
+
+// --- Reducer 和 Provider ---
+
 const promptReducer = (state, action) => {
   switch (action.type) {
+    case 'TOGGLE_KEYWORD': {
+      const newSelected = new Set(state.selectedKeywords);
+      if (newSelected.has(action.payload)) {
+        newSelected.delete(action.payload);
+      } else {
+        newSelected.add(action.payload);
+      }
+      const newPrompt = generateStructuredPromptString(newSelected);
+      return {
+        ...state,
+        selectedKeywords: newSelected,
+        finalPrompt: newPrompt,
+      };
+    }
+
+    case 'TOGGLE_NEGATIVE_KEYWORD': {
+      const newNegative = new Set(state.negativeKeywords);
+      if (newNegative.has(action.payload)) {
+        newNegative.delete(action.payload);
+      } else {
+        newNegative.add(action.payload);
+      }
+      const newFinalNegativePrompt = Array.from(newNegative).join(', ');
+      return {
+        ...state,
+        negativeKeywords: newNegative,
+        finalNegativePrompt: newFinalNegativePrompt,
+      };
+    }
+
     case 'TOGGLE_KEYWORD_COMBINATION': {
       const newSelected = new Set(state.selectedKeywords);
       const comboKeywords = action.payload;
@@ -136,18 +122,18 @@ const promptReducer = (state, action) => {
         comboKeywords.forEach(kw => newSelected.add(kw));
       }
 
-      const newPrompt = generateStructuredPromptString(newSelected, state.isAnimeMode);
+      const newPrompt = generateStructuredPromptString(newSelected);
       return {
         ...state,
         selectedKeywords: newSelected,
         finalPrompt: newPrompt,
       };
     }
-
+    
     case 'ADD_KEYWORD': {
       const newSelected = new Set(state.selectedKeywords);
       newSelected.add(action.payload);
-      const newPrompt = generateStructuredPromptString(newSelected, state.isAnimeMode);
+      const newPrompt = generateStructuredPromptString(newSelected);
       return {
         ...state,
         selectedKeywords: newSelected,
@@ -158,7 +144,7 @@ const promptReducer = (state, action) => {
     case 'REMOVE_KEYWORD': {
       const newSelected = new Set(state.selectedKeywords);
       newSelected.delete(action.payload);
-      const newPrompt = generateStructuredPromptString(newSelected, state.isAnimeMode);
+      const newPrompt = generateStructuredPromptString(newSelected);
       return {
         ...state,
         selectedKeywords: newSelected,
@@ -169,26 +155,28 @@ const promptReducer = (state, action) => {
     case 'ADD_NEGATIVE_KEYWORD': {
       const newNegative = new Set(state.negativeKeywords);
       newNegative.add(action.payload);
+      const newFinalNegativePrompt = Array.from(newNegative).join(', ');
       return {
         ...state,
         negativeKeywords: newNegative,
-        finalNegativePrompt: generateStructuredPromptString(newNegative, state.isAnimeMode),
+        finalNegativePrompt: newFinalNegativePrompt,
       };
     }
     
     case 'REMOVE_NEGATIVE_KEYWORD': {
       const newNegative = new Set(state.negativeKeywords);
       newNegative.delete(action.payload);
+      const newFinalNegativePrompt = Array.from(newNegative).join(', ');
       return {
         ...state,
         negativeKeywords: newNegative,
-        finalNegativePrompt: generateStructuredPromptString(newNegative, state.isAnimeMode),
+        finalNegativePrompt: newFinalNegativePrompt,
       };
     }
     
     case 'APPLY_FILTER': {
       const newSelected = new Set(action.payload);
-      const newPrompt = generateStructuredPromptString(newSelected, state.isAnimeMode);
+      const newPrompt = generateStructuredPromptString(newSelected);
       return {
         ...state,
         selectedKeywords: newSelected,
@@ -199,10 +187,14 @@ const promptReducer = (state, action) => {
     }
     
     case 'CLEAR_ALL': {
+      const newSelected = new Set();
+      if (state.isAnimeMode) {
+        newSelected.add('二次元');
+      }
       return {
         ...state,
-        selectedKeywords: new Set(),
-        finalPrompt: state.isAnimeMode ? '艺术风格：二次元' : '',
+        selectedKeywords: newSelected,
+        finalPrompt: generateStructuredPromptString(newSelected),
         selectedFilter: null,
       };
     }
@@ -230,10 +222,19 @@ const promptReducer = (state, action) => {
     
     case 'TOGGLE_ANIME_MODE': {
       const newIsAnimeMode = !state.isAnimeMode;
-      const newPrompt = generateStructuredPromptString(state.selectedKeywords, newIsAnimeMode);
+      const newSelected = new Set(state.selectedKeywords);
+
+      if (newIsAnimeMode) {
+        newSelected.add('二次元');
+      } else {
+        newSelected.delete('二次元');
+      }
+
+      const newPrompt = generateStructuredPromptString(newSelected);
       return {
         ...state,
         isAnimeMode: newIsAnimeMode,
+        selectedKeywords: newSelected,
         finalPrompt: newPrompt,
       };
     }
@@ -338,7 +339,7 @@ const promptReducer = (state, action) => {
       }
       
       const newSelected = new Set(luckyKeywords);
-      const newPrompt = generateStructuredPromptString(newSelected, state.isAnimeMode);
+      const newPrompt = generateStructuredPromptString(newSelected);
       
       return {
         ...state,
@@ -357,38 +358,59 @@ const promptReducer = (state, action) => {
 export const PromptProvider = ({ children }) => {
   const [state, dispatch] = useReducer(promptReducer, initialState);
   
-  // 提供的方法
-  const actions = {
-    addKeyword: (keyword) => dispatch({ type: 'ADD_KEYWORD', payload: keyword }),
-    removeKeyword: (keyword) => dispatch({ type: 'REMOVE_KEYWORD', payload: keyword }),
-    addNegativeKeyword: (keyword) => dispatch({ type: 'ADD_NEGATIVE_KEYWORD', payload: keyword }),
-    removeNegativeKeyword: (keyword) => dispatch({ type: 'REMOVE_NEGATIVE_KEYWORD', payload: keyword }),
-    applyFilter: (keywords, filterName) => dispatch({ type: 'APPLY_FILTER', payload: keywords, filterName }),
-    clearAll: () => dispatch({ type: 'CLEAR_ALL' }),
-    setMode: (mode) => dispatch({ type: 'SET_MODE', payload: mode }),
-    generateLucky: () => dispatch({ type: 'GENERATE_LUCKY' }),
-    updatePrompt: (prompt) => dispatch({ type: 'UPDATE_PROMPT', payload: prompt }),
-    updateNegativePrompt: (prompt) => dispatch({ type: 'UPDATE_NEGATIVE_PROMPT', payload: prompt }),
-    toggleAnimeMode: () => dispatch({ type: 'TOGGLE_ANIME_MODE' }),
-    toggleKeyword: (keyword) => {
-      if (state.selectedKeywords.has(keyword)) {
-        dispatch({ type: 'REMOVE_KEYWORD', payload: keyword });
-      } else {
-        dispatch({ type: 'ADD_KEYWORD', payload: keyword });
-      }
-    },
-    toggleNegativeKeyword: (keyword) => {
-      if (state.negativeKeywords.has(keyword)) {
-        dispatch({ type: 'REMOVE_NEGATIVE_KEYWORD', payload: keyword });
-      } else {
-        dispatch({ type: 'ADD_NEGATIVE_KEYWORD', payload: keyword });
-      }
-    },
+  // 将所有独立的 add/remove 函数统一为 toggle
+  const toggleKeyword = (keyword) => {
+    dispatch({ type: 'TOGGLE_KEYWORD', payload: keyword });
+  };
+
+  const toggleNegativeKeyword = (keyword) => {
+    dispatch({ type: 'TOGGLE_NEGATIVE_KEYWORD', payload: keyword });
+  };
+
+  const toggleKeywordCombination = (combo) => {
+    dispatch({ type: 'TOGGLE_KEYWORD_COMBINATION', payload: combo });
+  };
+  
+  const applyFilter = (keywords, filterName) => {
+    dispatch({ type: 'APPLY_FILTER', payload: keywords, filterName });
+  };
+  
+  const clearAll = () => {
+    dispatch({ type: 'CLEAR_ALL' });
+  };
+
+  const setMode = (mode) => {
+    dispatch({ type: 'SET_MODE', payload: mode });
+  };
+
+  const updatePrompt = (prompt) => {
+    dispatch({ type: 'UPDATE_PROMPT', payload: prompt });
+  };
+
+  const updateNegativePrompt = (prompt) => {
+    dispatch({ type: 'UPDATE_NEGATIVE_PROMPT', payload: prompt });
+  };
+
+  const toggleAnimeMode = () => {
+    dispatch({ type: 'TOGGLE_ANIME_MODE' });
+  };
+
+  const generateLucky = () => {
+    dispatch({ type: 'GENERATE_LUCKY' });
   };
   
   const value = {
     ...state,
-    ...actions,
+    toggleKeyword,
+    toggleNegativeKeyword,
+    toggleKeywordCombination,
+    applyFilter,
+    clearAll,
+    setMode,
+    updatePrompt,
+    updateNegativePrompt,
+    toggleAnimeMode,
+    generateLucky,
   };
   
   return (
