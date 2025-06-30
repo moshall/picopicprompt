@@ -176,6 +176,9 @@ const promptReducer = (state, action) => {
     
     case 'APPLY_FILTER': {
       const newSelected = new Set(action.payload);
+      if (state.isAnimeMode) {
+        newSelected.add('二次元');
+      }
       const newPrompt = generateStructuredPromptString(newSelected);
       return {
         ...state,
@@ -339,6 +342,9 @@ const promptReducer = (state, action) => {
       }
       
       const newSelected = new Set(luckyKeywords);
+      if (state.isAnimeMode) {
+        newSelected.add('二次元');
+      }
       const newPrompt = generateStructuredPromptString(newSelected);
       
       return {
