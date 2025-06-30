@@ -33,7 +33,7 @@ const AppContent = () => {
               🎨 PicoPico文生图 Prompt 生成器
             </h1>
             <p className="text-gray-300 text-lg">
-              AIPG-WebApp - 专业的文本到图像提示词生成工具
+              使用滤镜模式请先选择滤镜，再手动选择内容主体获得最佳效果
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
               <span>✨ 三种生成模式</span>

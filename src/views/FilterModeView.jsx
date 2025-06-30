@@ -1,151 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { usePrompt } from '../context/PromptProvider';
+import { config } from '../data/config';
 import FilterCard from '../components/FilterCard';
-import { config } from '../data/config.js';
 
 const FilterModeView = () => {
-  const [selectedCategory, setSelectedCategory] = useState('全部');
+    const { applyFilter } = usePrompt();
+    const [activeCategory, setActiveCategory] = useState('全部');
 
-  // 获取滤镜分类
-  const getFilterCategories = () => {
-    const categories = new Set(['全部']);
-    
-    if (config.styleCombinations) {
-      Object.keys(config.styleCombinations).forEach(filterName => {
-        if (filterName.includes('情感') || filterName.includes('💧') || filterName.includes('☀️') || 
-            filterName.includes('🛡️') || filterName.includes('💌') || filterName.includes('😊')) {
-          categories.add('情感氛围');
-        } else if (filterName.includes('科幻') || filterName.includes('🌃') || filterName.includes('🪐') || 
-                   filterName.includes('⚙️') || filterName.includes('🤖') || filterName.includes('🛰️')) {
-          categories.add('科幻未来');
-        } else if (filterName.includes('史诗') || filterName.includes('⚔️') || filterName.includes('🏰') || 
-                   filterName.includes('✨') || filterName.includes('📜') || filterName.includes('⛩️')) {
-          categories.add('奇幻史诗');
-        } else if (filterName.includes('艺术') || filterName.includes('🎨') || filterName.includes('🖼️') || 
-                   filterName.includes('🌊') || filterName.includes('✒️') || filterName.includes('⚜️')) {
-          categories.add('艺术绘画');
-        } else if (filterName.includes('潮流') || filterName.includes('🔮') || filterName.includes('🧩') || 
-                   filterName.includes('💥') || filterName.includes('🕹️') || filterName.includes('⚪️')) {
-          categories.add('潮流设计');
-        } else if (filterName.includes('恐怖') || filterName.includes('🩸') || filterName.includes('📼') || 
-                   filterName.includes('👻') || filterName.includes('🧠')) {
-          categories.add('恐怖悬疑');
-        } else if (filterName.includes('浪漫') || filterName.includes('🏛️') || filterName.includes('🏖️') || 
-                   filterName.includes('🍂') || filterName.includes('🌸') || filterName.includes('🌌') || 
-                   filterName.includes('👑') || filterName.includes('💖') || filterName.includes('💃') || 
-                   filterName.includes('🦋') || filterName.includes('🛋️') || filterName.includes('🎭') || 
-                   filterName.includes('🚲') || filterName.includes('🌹')) {
-          categories.add('浪漫生活');
-        } else if (filterName.includes('动态') || filterName.includes('🔥') || filterName.includes('🏜️') || 
-                   filterName.includes('🕺') || filterName.includes('🌊')) {
-          categories.add('动态动作');
-        } else {
-          categories.add('其他');
+    const filterCategories = useMemo(() => {
+        const categories = new Set(['全部']);
+        if (config.styleCombinations) {
+            Object.keys(config.styleCombinations).forEach(categoryName => {
+                categories.add(categoryName);
+            });
         }
-      });
-    }
-    
-    return Array.from(categories);
-  };
+        return Array.from(categories);
+    }, []);
 
-  // 过滤滤镜
-  const getFilteredFilters = () => {
-    if (!config.styleCombinations) return [];
-    
-    let filters = Object.entries(config.styleCombinations);
-    
-    // 按分类过滤
-    if (selectedCategory !== '全部') {
-      filters = filters.filter(([filterName]) => {
-        switch (selectedCategory) {
-          case '情感氛围':
-            return filterName.includes('情感') || filterName.includes('💧') || filterName.includes('☀️') || 
-                   filterName.includes('🛡️') || filterName.includes('💌') || filterName.includes('😊');
-          case '科幻未来':
-            return filterName.includes('科幻') || filterName.includes('🌃') || filterName.includes('🪐') || 
-                   filterName.includes('⚙️') || filterName.includes('🤖') || filterName.includes('🛰️');
-          case '奇幻史诗':
-            return filterName.includes('史诗') || filterName.includes('⚔️') || filterName.includes('🏰') || 
-                   filterName.includes('✨') || filterName.includes('📜') || filterName.includes('⛩️');
-          case '艺术绘画':
-            return filterName.includes('艺术') || filterName.includes('🎨') || filterName.includes('🖼️') || 
-                   filterName.includes('🌊') || filterName.includes('✒️') || filterName.includes('⚜️');
-          case '潮流设计':
-            return filterName.includes('潮流') || filterName.includes('🔮') || filterName.includes('🧩') || 
-                   filterName.includes('💥') || filterName.includes('🕹️') || filterName.includes('⚪️');
-          case '恐怖悬疑':
-            return filterName.includes('恐怖') || filterName.includes('🩸') || filterName.includes('📼') || 
-                   filterName.includes('👻') || filterName.includes('🧠');
-          case '浪漫生活':
-            return filterName.includes('浪漫') || filterName.includes('🏛️') || filterName.includes('🏖️') || 
-                   filterName.includes('🍂') || filterName.includes('🌸') || filterName.includes('🌌') || 
-                   filterName.includes('👑') || filterName.includes('💖') || filterName.includes('💃') || 
-                   filterName.includes('🦋') || filterName.includes('🛋️') || filterName.includes('🎭') || 
-                   filterName.includes('🚲') || filterName.includes('🌹');
-          case '动态动作':
-            return filterName.includes('动态') || filterName.includes('🔥') || filterName.includes('🏜️') || 
-                   filterName.includes('🕺') || filterName.includes('🌊');
-          default:
-            return true;
+    const filteredCombinations = useMemo(() => {
+        if (!config.styleCombinations) return [];
+
+        if (activeCategory === '全部') {
+            // 如果是"全部"，则展平所有滤镜
+            return Object.values(config.styleCombinations).flatMap(category => 
+                Object.entries(category).map(([name, keywords]) => ({ name, keywords }))
+            );
         }
-      });
-    }
+        
+        // 否则，只返回选定分类下的滤镜
+        const categoryFilters = config.styleCombinations[activeCategory] || {};
+        return Object.entries(categoryFilters).map(([name, keywords]) => ({ name, keywords }));
+
+    }, [activeCategory]);
     
-    return filters;
-  };
+    return (
+        <div className="flex flex-col h-full bg-gray-800 text-white">
+            <div className="p-4 border-b border-gray-700">
+                <h2 className="text-xl font-bold">滤镜模式</h2>
+                <p className="text-sm text-gray-400">选择一个预设滤镜，快速生成风格化提示词。</p>
+            </div>
+            
+            <div className="p-4 overflow-x-auto">
+                <div className="flex space-x-2">
+                    {filterCategories.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => setActiveCategory(category)}
+                            className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors duration-200 ${
+                                activeCategory === category 
+                                ? 'bg-purple-600 text-white' 
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-  const categories = getFilterCategories();
-  const filteredFilters = getFilteredFilters();
-
-  return (
-    <div className="w-full max-w-6xl mx-auto">
-      {/* 分类筛选 */}
-      <div className="mb-6 space-y-4">
-        {/* 分类按钮 */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-3 py-1 rounded-full text-sm transition-all duration-200 ${
-                selectedCategory === category
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+            <div className="flex-grow p-4 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {filteredCombinations.map(({ name, keywords }) => (
+                        <FilterCard
+                            key={name}
+                            filterName={name}
+                            filterKeywords={keywords}
+                        />
+                    ))}
+                </div>
+            </div>
         </div>
-      </div>
-
-      {/* 滤镜网格 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredFilters.map(([filterName, filterKeywords]) => (
-          <FilterCard
-            key={filterName}
-            filterName={filterName}
-            filterKeywords={filterKeywords}
-          />
-        ))}
-      </div>
-
-      {/* 无结果提示 */}
-      {filteredFilters.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-500 text-lg mb-2">😢</div>
-          <p className="text-gray-400">
-            没有找到匹配的滤镜，请尝试其他搜索词或选择不同的分类
-          </p>
-        </div>
-      )}
-
-      {/* 滤镜统计 */}
-      <div className="mt-8 text-center text-sm text-gray-500">
-        共 {Object.keys(config.styleCombinations || {}).length} 个滤镜，
-        当前显示 {filteredFilters.length} 个
-      </div>
-    </div>
-  );
+    );
 };
 
 export default FilterModeView; 
